@@ -1,0 +1,117 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'war'
+apply plugin: 'jetty'
+
+repositories { mavenCentral() }
+
+eclipse {
+	project {
+		natures 'com.google.gwt.eclipse.core.gwtNature'
+		natures 'com.google.appengine.eclipse.core.gaeNature'
+		natures 'org.eclipse.wst.common.project.facet.core.nature'
+
+		buildCommand 'com.google.gdt.eclipse.core.webAppProjectValidator'
+		buildCommand 'com.google.gwt.eclipse.core.gwtProjectValidator'
+		buildCommand 'org.eclipse.wst.common.project.facet.core.builder'
+		buildCommand 'com.google.appengine.eclipse.core.gaeProjectChangeNotifier'
+		buildCommand 'com.google.appengine.eclipse.core.projectValidator'
+		buildCommand 'com.google.appengine.eclipse.core.enhancerbuilder'
+	}
+	classpath {
+		containers 'com.google.gwt.eclipse.core.GWT_CONTAINER'
+		containers 'com.google.appengine.eclipse.core.GAE_CONTAINER'
+
+		defaultOutputDir file('src/main/webapp/WEB-INF/classes')
+	}
+}
+
+dependencies {
+
+	providedCompile 'javax.servlet:servlet-api:2.5'
+	providedCompile 'com.google.gwt:gwt-user:2.4.0'
+	providedCompile 'com.google.gwt:gwt-dev:2.4.0'
+
+	// Needed for GWT compile and at runtime for RequestBuilder
+	// Specify two artifacts as workaround for GRADLE-1934
+	compile('javax.validation:validation-api:1.0.0.GA') {
+		artifact {
+			name = 'validation-api'
+			type = 'jar'
+		}
+		artifact {
+			name = 'validation-api'
+			type = 'jar'
+			classifier = 'sources'
+		}
+	}
+
+	// runtime libs, should be included in WAR
+	runtime 'com.google.gwt:gwt-servlet:2.4.0'
+	runtime 'com.typesafe.akka:akka-remote_2.10:2.1.1'
+
+}
+
+sourceSets {
+	main {
+		java {
+			srcDir './src'
+			exclude 'main/webapp/'
+		}
+		java { srcDir './test' }
+	}
+}
+
+
+task compileGWT (dependsOn: classes, type: JavaExec) {
+	buildDir = "${project.buildDir}/gwt"
+	extraDir = "${project.buildDir}/extra"
+
+	inputs.source sourceSets.main.java.srcDirs
+	inputs.dir sourceSets.main.output.resourcesDir
+	outputs.dir buildDir
+
+	doFirst {
+		file(buildDir).mkdirs()
+	}
+
+	main = 'com.google.gwt.dev.Compiler'
+
+	classpath {
+		[
+			sourceSets.main.java.srcDirs,
+			// Java source
+			sourceSets.main.output.resourcesDir,
+			// Generated resources
+			sourceSets.main.output.classesDir,
+			// Generated classes
+			sourceSets.main.compileClasspath,       // Deps
+		]
+	}
+
+
+	args =
+			[
+				'de.info2.ub.auftragsformular.Auftragsformular',
+				// Your GWT module
+				'-war',
+				buildDir,
+				'-logLevel',
+				'INFO',
+				'-localWorkers',
+				'6',
+				'-compileReport',
+				'-extra',
+				extraDir,
+				// '-draftCompile' // Speeds up compile with 25%
+			]
+
+	maxHeapSize = '256M'
+}
+
+
+war.dependsOn compileGWT
+
+war { from compileGWT.buildDir }
+
+jettyRunWar.webApp file(war.archivePath)
