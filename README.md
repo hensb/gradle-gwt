@@ -1,4 +1,4 @@
-auftragsformular
+gradle-gwt
 ================
 
 This is a simple template project layout for a **Java web-application** using **Google WebToolkit**.  
