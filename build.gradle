@@ -1,13 +1,15 @@
+// plugins
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'war'
 apply plugin: 'jetty'
 
+// variables
 if( System.env.HOME == null )
 	throw new GradleException('Environment variable HOME not set.')
-
 String home = "$System.env.HOME"
 
+// repositories
 repositories { 
 	mavenCentral() 
 
@@ -22,6 +24,7 @@ repositories {
 	}
 }
 
+// eclipse relevant stuff
 eclipse {
 	project {
 		natures 'com.google.gwt.eclipse.core.gwtNature'
@@ -39,13 +42,14 @@ eclipse {
 		containers 'com.google.gwt.eclipse.core.GWT_CONTAINER'
 		containers 'com.google.appengine.eclipse.core.GAE_CONTAINER'
 
+		// be sure to exclude this from sourceSets (see below)
 		defaultOutputDir file('src/main/webapp/WEB-INF/classes')
 	}
 }
 
+// project dependencies
 dependencies {
 
-	// providedCompile 'javax.servlet:servlet-api:2.5'
 	providedCompile 'com.google.gwt:gwt-user:2.4.0'
 	providedCompile 'com.google.gwt:gwt-dev:2.4.0'
 
@@ -63,7 +67,6 @@ dependencies {
 		}
 	}
 
-	// runtime libs, should be included in WAR
 	compile 'com.typesafe.akka:akka-remote_2.10:2.1.1' 
 	compile 'de.info2.ub:CommunicationInterface:1.0.5-SNAPSHOT'
 	compile 'de.info2.ub:MessageHeaders:1.0.3-SNAPSHOT'
@@ -78,17 +81,19 @@ dependencies {
 
 }
 
+// specify project layout
 sourceSets {
 	main {
 		java {
 			srcDir './src'
+			// exclude webapp-dir
 			exclude 'main/webapp/'
 		}
 		java { srcDir './test' }
 	}
 }
 
-
+// gwtCompile task
 task compileGWT (dependsOn: classes, type: JavaExec) {
 	buildDir = "${project.buildDir}/gwt"
 	extraDir = "${project.buildDir}/extra"
@@ -135,9 +140,9 @@ task compileGWT (dependsOn: classes, type: JavaExec) {
 	maxHeapSize = '256M'
 }
 
-
+// be sure to exec compileGWT prior to packaging stuff into a webapp
 war.dependsOn compileGWT
-
 war { from compileGWT.buildDir }
 
+// we point jetty to our new webapp
 jettyRunWar.webApp file(war.archivePath)
