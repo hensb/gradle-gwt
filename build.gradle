@@ -3,7 +3,24 @@ apply plugin: 'eclipse'
 apply plugin: 'war'
 apply plugin: 'jetty'
 
-repositories { mavenCentral() }
+if( System.env.HOME == null )
+	throw new GradleException('Environment variable HOME not set.')
+
+String home = "$System.env.HOME"
+
+repositories { 
+	mavenCentral() 
+
+	add(new org.apache.ivy.plugins.resolver.SshResolver()) {
+		name = 'repos'
+		publishPermissions = '0666'
+		addIvyPattern 'www/web/repos/[organisation]/[module]/ivys/ivy-[revision].xml'
+		addArtifactPattern 'www/web/repos/[organisation]/[module]/[type]s/[organisation]-[artifact]-[revision].[ext]'
+		user = 'maven'
+		host = "win2014"
+		keyFile = file(home + "/.ssh/id_rsa")
+	}
+}
 
 eclipse {
 	project {
@@ -28,7 +45,7 @@ eclipse {
 
 dependencies {
 
-	providedCompile 'javax.servlet:servlet-api:2.5'
+	// providedCompile 'javax.servlet:servlet-api:2.5'
 	providedCompile 'com.google.gwt:gwt-user:2.4.0'
 	providedCompile 'com.google.gwt:gwt-dev:2.4.0'
 
@@ -47,8 +64,17 @@ dependencies {
 	}
 
 	// runtime libs, should be included in WAR
-	runtime 'com.google.gwt:gwt-servlet:2.4.0'
-	runtime 'com.typesafe.akka:akka-remote_2.10:2.1.1'
+	compile 'com.typesafe.akka:akka-remote_2.10:2.1.1' 
+	compile 'de.info2.ub:CommunicationInterface:1.0.5-SNAPSHOT'
+	compile 'de.info2.ub:MessageHeaders:1.0.3-SNAPSHOT'
+	compile 'de.info2.ub:WuesyphusDomain:0.9-SNAPSHOT'
+	compile 'de.info2.ub:akka-comm-facade:1.0.2-RELEASE'
+	
+	compile 'com.claudiushauptmann:gwt-recaptcha:1.0.0.Beta2'
+	compile 'net.tanesha.recaptcha4j:recaptcha4j:0.0.7'
+	compile 'com.typesafe.akka:akka-remote_2.10:2.1.1'
+	compile 'com.typesafe:config:1.0.0'
+	compile 'javax.mail:mail:1.4.4'
 
 }
 
@@ -92,7 +118,7 @@ task compileGWT (dependsOn: classes, type: JavaExec) {
 
 	args =
 			[
-				'de.info2.ub.auftragsformular.Auftragsformular',
+				'de.info2.ub.auftragsformular.Wuebtrag',
 				// Your GWT module
 				'-war',
 				buildDir,
